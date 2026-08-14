@@ -47,6 +47,19 @@ var (
 	snakeCaseRegexp = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
 )
 
+// ValidateObject validates a defaulted ontology document of any known kind.
+func ValidateObject(obj ontologyv1.Object) field.ErrorList {
+	switch typed := obj.(type) {
+	case *ontologyv1.ObjectType:
+		return ValidateObjectType(typed)
+	case *ontologyv1.LinkType:
+		return ValidateLinkType(typed)
+	default:
+		return field.ErrorList{field.InternalError(field.NewPath("kind"),
+			fmt.Errorf("no validation registered for %T", obj))}
+	}
+}
+
 func validateTypeMeta(meta *ontologyv1.TypeMeta, expectedKind string) field.ErrorList {
 	var allErrs field.ErrorList
 
