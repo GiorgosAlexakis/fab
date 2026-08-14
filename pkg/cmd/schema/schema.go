@@ -39,6 +39,7 @@ func NewCmdSchema(f cmdutil.Factory, streams genericiooptions.IOStreams) *cobra.
 	cmd.AddCommand(
 		NewCmdValidate(f, streams),
 		NewCmdPublish(f, streams),
+		NewCmdList(f, streams),
 	)
 
 	return cmd
