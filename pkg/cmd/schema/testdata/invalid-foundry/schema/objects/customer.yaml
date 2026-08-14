@@ -1,0 +1,9 @@
+apiVersion: fab/v1
+kind: ObjectType
+metadata:
+  name: Customer
+spec:
+  primaryKey: id
+  properties:
+    - name: id
+      type: string

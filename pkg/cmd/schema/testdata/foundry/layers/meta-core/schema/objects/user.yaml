@@ -1,0 +1,17 @@
+apiVersion: fab/v1
+kind: ObjectType
+metadata:
+  name: User
+  description: A person who can authenticate against the platform.
+spec:
+  primaryKey: id
+  properties:
+    - name: id
+      type: string
+    - name: email
+      type: string
+      unique: true
+    - name: full_name
+      type: string
+    - name: created_at
+      type: timestamp
