@@ -16,9 +16,8 @@ SHELL := /usr/bin/env bash
 
 GO ?= go
 BIN_DIR ?= bin
-
-# The CLI, plus the internal ontology servers.
-BINARIES ?= fab ontology-registry
+# The CLI, plus the two internal ontology servers.
+BINARIES ?= fab ontology-registry ontology-objectstore
 
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 GIT_TREE_STATE ?= $(shell test -n "$$(git status --porcelain 2>/dev/null)" && echo dirty || echo clean)
