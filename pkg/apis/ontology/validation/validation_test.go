@@ -44,6 +44,22 @@ func validObjectType(mutate func(obj *ontologyv1.ObjectType)) *ontologyv1.Object
 	return obj
 }
 
+func validLinkType(mutate func(obj *ontologyv1.LinkType)) *ontologyv1.LinkType {
+	obj := &ontologyv1.LinkType{
+		Metadata: ontologyv1.ObjectMeta{Name: "CustomerOrders", Layer: "app"},
+		Spec: ontologyv1.LinkTypeSpec{
+			Source:      ontologyv1.TypeReference{Layer: "app", Type: "Customer"},
+			Target:      ontologyv1.TypeReference{Layer: "app", Type: "Order"},
+			Cardinality: ontologyv1.CardinalityOneToMany,
+		},
+	}
+	if mutate != nil {
+		mutate(obj)
+	}
+	ontologyv1.SetObjectDefaults(obj)
+	return obj
+}
+
 func TestValidateObjectType(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -68,7 +84,7 @@ func TestValidateObjectType(t *testing.T) {
 			// Defaulting fills an empty kind, so the reachable failure is a
 			// document whose kind disagrees with its content.
 			name:      "kind does not match the document",
-			obj:       validObjectType(func(obj *ontologyv1.ObjectType) { obj.Kind = "Aspect" }),
+			obj:       validObjectType(func(obj *ontologyv1.ObjectType) { obj.Kind = ontologyv1.LinkTypeKind }),
 			wantField: "kind",
 		},
 		{
@@ -195,6 +211,77 @@ func TestValidateObjectType(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			errs := ValidateObjectType(testCase.obj)
+			assertFieldError(t, errs.ToAggregate(), testCase.wantField)
+		})
+	}
+}
+
+func TestValidateLinkType(t *testing.T) {
+	testCases := []struct {
+		name      string
+		obj       *ontologyv1.LinkType
+		wantField string
+	}{
+		{
+			name: "valid",
+			obj:  validLinkType(nil),
+		},
+		{
+			name: "missing source type",
+			obj: validLinkType(func(obj *ontologyv1.LinkType) {
+				obj.Spec.Source.Type = ""
+			}),
+			wantField: "spec.source.type",
+		},
+		{
+			name: "missing cardinality",
+			obj: validLinkType(func(obj *ontologyv1.LinkType) {
+				obj.Spec.Cardinality = ""
+			}),
+			wantField: "spec.cardinality",
+		},
+		{
+			name: "unknown cardinality",
+			obj: validLinkType(func(obj *ontologyv1.LinkType) {
+				obj.Spec.Cardinality = "one_to_some"
+			}),
+			wantField: "spec.cardinality",
+		},
+		{
+			name: "unknown delete policy",
+			obj: validLinkType(func(obj *ontologyv1.LinkType) {
+				obj.Spec.OnSourceDelete = "purge"
+			}),
+			wantField: "spec.onSourceDelete",
+		},
+		{
+			name: "set_null on many_to_many",
+			obj: validLinkType(func(obj *ontologyv1.LinkType) {
+				obj.Spec.Cardinality = ontologyv1.CardinalityManyToMany
+				obj.Spec.OnSourceDelete = ontologyv1.DeletePolicySetNull
+			}),
+			wantField: "spec.onSourceDelete",
+		},
+		{
+			name: "traversal name is not snake_case",
+			obj: validLinkType(func(obj *ontologyv1.LinkType) {
+				obj.Spec.ReverseName = "Customer"
+			}),
+			wantField: "spec.reverseName",
+		},
+		{
+			name: "identical traversal names",
+			obj: validLinkType(func(obj *ontologyv1.LinkType) {
+				obj.Spec.ForwardName = "customer"
+				obj.Spec.ReverseName = "customer"
+			}),
+			wantField: "spec.reverseName",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			errs := ValidateLinkType(testCase.obj)
 			assertFieldError(t, errs.ToAggregate(), testCase.wantField)
 		})
 	}

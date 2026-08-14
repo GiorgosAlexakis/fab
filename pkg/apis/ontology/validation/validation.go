@@ -52,6 +52,8 @@ func ValidateObject(obj ontologyv1.Object) field.ErrorList {
 	switch typed := obj.(type) {
 	case *ontologyv1.ObjectType:
 		return ValidateObjectType(typed)
+	case *ontologyv1.LinkType:
+		return ValidateLinkType(typed)
 	default:
 		return field.ErrorList{field.InternalError(field.NewPath("kind"),
 			fmt.Errorf("no validation registered for %T", obj))}

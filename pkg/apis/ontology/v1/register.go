@@ -34,6 +34,8 @@ const Version = "v1"
 const (
 	// ObjectTypeKind is the kind of an ObjectType document.
 	ObjectTypeKind = "ObjectType"
+	// LinkTypeKind is the kind of a LinkType document.
+	LinkTypeKind = "LinkType"
 )
 
 // SchemeGroupVersion is the group version used to register these types. Its
@@ -47,6 +49,9 @@ var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: Version}
 var constructors = map[string]func() Object{
 	ObjectTypeKind: func() Object {
 		return &ObjectType{TypeMeta: TypeMeta{APIVersion: SchemeGroupVersion.String(), Kind: ObjectTypeKind}}
+	},
+	LinkTypeKind: func() Object {
+		return &LinkType{TypeMeta: TypeMeta{APIVersion: SchemeGroupVersion.String(), Kind: LinkTypeKind}}
 	},
 }
 

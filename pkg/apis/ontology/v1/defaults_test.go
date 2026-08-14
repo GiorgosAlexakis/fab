@@ -77,6 +77,52 @@ func TestSetDefaultsObjectTypeKeepsExplicitNullable(t *testing.T) {
 	}
 }
 
+func TestSetDefaultsLinkType(t *testing.T) {
+	obj := &LinkType{
+		Metadata: ObjectMeta{Name: "CustomerOrders", Layer: "app"},
+		Spec: LinkTypeSpec{
+			Source:      TypeReference{Type: "Customer"},
+			Target:      TypeReference{Type: "Order"},
+			Cardinality: CardinalityOneToMany,
+		},
+	}
+
+	SetObjectDefaults(obj)
+
+	if obj.Spec.Source.Layer != "app" || obj.Spec.Target.Layer != "app" {
+		t.Errorf("endpoint layers = %q/%q, want app/app", obj.Spec.Source.Layer, obj.Spec.Target.Layer)
+	}
+	if obj.Spec.ForwardName != "customer_orders" {
+		t.Errorf("ForwardName = %q, want customer_orders", obj.Spec.ForwardName)
+	}
+	if obj.Spec.ReverseName != "customer" {
+		t.Errorf("ReverseName = %q, want customer", obj.Spec.ReverseName)
+	}
+	if obj.Spec.OnSourceDelete != DeletePolicyRestrict {
+		t.Errorf("OnSourceDelete = %q, want restrict", obj.Spec.OnSourceDelete)
+	}
+}
+
+func TestSetDefaultsLinkTypeKeepsCrossLayerEndpoint(t *testing.T) {
+	obj := &LinkType{
+		Metadata: ObjectMeta{Name: "OrganizationSubscription", Layer: "meta-billing"},
+		Spec: LinkTypeSpec{
+			Source:      TypeReference{Layer: "meta-core", Type: "Organization"},
+			Target:      TypeReference{Type: "Subscription"},
+			Cardinality: CardinalityOneToOne,
+		},
+	}
+
+	SetObjectDefaults(obj)
+
+	if obj.Spec.Source.Layer != "meta-core" {
+		t.Errorf("Source.Layer = %q, want meta-core", obj.Spec.Source.Layer)
+	}
+	if obj.Spec.Target.Layer != "meta-billing" {
+		t.Errorf("Target.Layer = %q, want meta-billing", obj.Spec.Target.Layer)
+	}
+}
+
 func TestNewUnknownKind(t *testing.T) {
 	if _, err := New("Aspect"); err == nil {
 		t.Fatal("New(\"Aspect\") succeeded, want an error naming the supported kinds")

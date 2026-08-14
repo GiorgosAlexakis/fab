@@ -16,6 +16,10 @@ limitations under the License.
 
 package v1
 
+import (
+	"github.com/GiorgosAlexakis/fab/pkg/util/naming"
+)
+
 // SetObjectDefaults applies the defaults for obj's kind. Defaulting runs after
 // decoding and before validation, so validation only ever sees fully populated
 // documents.
@@ -23,6 +27,8 @@ func SetObjectDefaults(obj Object) {
 	switch typed := obj.(type) {
 	case *ObjectType:
 		SetDefaults_ObjectType(typed)
+	case *LinkType:
+		SetDefaults_LinkType(typed)
 	}
 }
 
@@ -48,6 +54,29 @@ func SetDefaults_ObjectType(obj *ObjectType) {
 			// without "indexed" would be a lie about the storage layout.
 			property.Indexed = true
 		}
+	}
+}
+
+// SetDefaults_LinkType defaults a link type document.
+//
+//nolint:revive,stylecheck // Underscore naming matches the Kubernetes defaulter convention.
+func SetDefaults_LinkType(obj *LinkType) {
+	setTypeMetaDefaults(&obj.TypeMeta, LinkTypeKind)
+
+	if obj.Spec.Source.Layer == "" {
+		obj.Spec.Source.Layer = obj.Metadata.Layer
+	}
+	if obj.Spec.Target.Layer == "" {
+		obj.Spec.Target.Layer = obj.Metadata.Layer
+	}
+	if obj.Spec.ForwardName == "" {
+		obj.Spec.ForwardName = naming.ToSnakeCase(obj.Metadata.Name)
+	}
+	if obj.Spec.ReverseName == "" {
+		obj.Spec.ReverseName = naming.ToSnakeCase(obj.Spec.Source.Type)
+	}
+	if obj.Spec.OnSourceDelete == "" {
+		obj.Spec.OnSourceDelete = DeletePolicyRestrict
 	}
 }
 
