@@ -120,11 +120,84 @@ type ObjectTypeSpec struct {
 	Properties []Property `json:"properties"`
 }
 
+// Cardinality constrains how many instances may participate on each side of a
+// link type.
+type Cardinality string
+
+const (
+	// CardinalityOneToOne links at most one source to at most one target.
+	CardinalityOneToOne Cardinality = "one_to_one"
+	// CardinalityOneToMany links one source to many targets.
+	CardinalityOneToMany Cardinality = "one_to_many"
+	// CardinalityManyToOne links many sources to one target.
+	CardinalityManyToOne Cardinality = "many_to_one"
+	// CardinalityManyToMany links many sources to many targets.
+	CardinalityManyToMany Cardinality = "many_to_many"
+)
+
+// DeletePolicy is the behavior applied to linked objects when the object on
+// the other side of a link is deleted.
+type DeletePolicy string
+
+const (
+	// DeletePolicyRestrict fails the delete while linked objects exist. This
+	// is the default: it never destroys data implicitly.
+	DeletePolicyRestrict DeletePolicy = "restrict"
+	// DeletePolicyCascade deletes the linked target objects.
+	DeletePolicyCascade DeletePolicy = "cascade"
+	// DeletePolicySetNull clears the link reference on the target objects.
+	DeletePolicySetNull DeletePolicy = "set_null"
+	// DeletePolicyDetach removes the link but leaves the target objects.
+	DeletePolicyDetach DeletePolicy = "detach"
+)
+
+// TypeReference points at an object type, possibly in another layer.
+type TypeReference struct {
+	// Layer is the layer that owns the referenced object type. It defaults to
+	// the layer of the referencing document.
+	Layer string `json:"layer,omitempty"`
+	// Type is the referenced object type name.
+	Type string `json:"type"`
+}
+
+// LinkType is a first-class typed relationship between two object types. It is
+// not a foreign key: it is a named, directional, cardinality-constrained edge
+// that is queryable in both directions.
+type LinkType struct {
+	TypeMeta `json:",inline"`
+	// Metadata identifies and documents this link type.
+	Metadata ObjectMeta `json:"metadata"`
+	// Spec is the link type definition.
+	Spec LinkTypeSpec `json:"spec"`
+}
+
+// LinkTypeSpec is the definition of a link type.
+type LinkTypeSpec struct {
+	// Source is the object type the link points from.
+	Source TypeReference `json:"source"`
+	// Target is the object type the link points to.
+	Target TypeReference `json:"target"`
+	// Cardinality constrains both ends of the link.
+	Cardinality Cardinality `json:"cardinality"`
+	// ForwardName is the traversal name from source to target. It defaults to
+	// the snake_case form of the link type name.
+	ForwardName string `json:"forwardName,omitempty"`
+	// ReverseName is the traversal name from target back to source. It
+	// defaults to the snake_case form of the source type name.
+	ReverseName string `json:"reverseName,omitempty"`
+	// OnSourceDelete is the policy applied to target objects when a source
+	// object is deleted. Defaults to restrict.
+	OnSourceDelete DeletePolicy `json:"onSourceDelete,omitempty"`
+}
+
 // GetObjectKind returns the document's kind and API version.
 func (t *TypeMeta) GetObjectKind() *TypeMeta { return t }
 
 // GetObjectMeta returns the object type's metadata.
 func (o *ObjectType) GetObjectMeta() *ObjectMeta { return &o.Metadata }
+
+// GetObjectMeta returns the link type's metadata.
+func (l *LinkType) GetObjectMeta() *ObjectMeta { return &l.Metadata }
 
 // Object is implemented by every ontology document kind in this package.
 type Object interface {
@@ -134,7 +207,10 @@ type Object interface {
 	GetObjectMeta() *ObjectMeta
 }
 
-var _ Object = &ObjectType{}
+var (
+	_ Object = &ObjectType{}
+	_ Object = &LinkType{}
+)
 
 // IsScalar reports whether t is a scalar type, i.e. one that can serve as a
 // primary key, an array element or an indexable value.
