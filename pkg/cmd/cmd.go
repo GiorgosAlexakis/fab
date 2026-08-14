@@ -28,6 +28,7 @@ import (
 
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericclioptions"
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericiooptions"
+	layerscmd "github.com/GiorgosAlexakis/fab/pkg/cmd/layers"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/resolve"
 	cmdutil "github.com/GiorgosAlexakis/fab/pkg/cmd/util"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/version"
@@ -88,6 +89,10 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	resolveCmd := resolve.NewCmdResolve(factory, o.IOStreams)
 	resolveCmd.GroupID = groupComposition
 	cmd.AddCommand(resolveCmd)
+
+	layersCmd := layerscmd.NewCmdLayers(factory, o.IOStreams)
+	layersCmd.GroupID = groupComposition
+	cmd.AddCommand(layersCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther
