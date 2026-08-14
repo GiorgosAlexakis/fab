@@ -1,0 +1,21 @@
+apiVersion: fab/v1
+kind: ObjectType
+metadata:
+  name: Customer
+  description: A paying customer of Acme Corp.
+spec:
+  primaryKey: id
+  properties:
+    - name: id
+      type: string
+    - name: email
+      type: string
+      unique: true
+    - name: tier
+      type: enum
+      values: [free, pro, enterprise]
+      indexed: true
+    - name: lifetime_value
+      type: decimal
+    - name: preferences
+      type: json

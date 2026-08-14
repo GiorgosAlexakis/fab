@@ -28,13 +28,15 @@ import (
 
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericclioptions"
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericiooptions"
+	"github.com/GiorgosAlexakis/fab/pkg/cmd/schema"
 	cmdutil "github.com/GiorgosAlexakis/fab/pkg/cmd/util"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/version"
 )
 
 // Command group ids used to organise `fab --help`.
 const (
-	groupOther = "other"
+	groupOntology = "ontology"
+	groupOther    = "other"
 )
 
 // FabOptions is the configuration of the root command.
@@ -76,9 +78,16 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	}
 	o.ConfigFlags.AddFlags(cmd.PersistentFlags())
 
+	factory := cmdutil.NewFactory(o.ConfigFlags)
+
 	cmd.AddGroup(
+		&cobra.Group{ID: groupOntology, Title: "Ontology Commands:"},
 		&cobra.Group{ID: groupOther, Title: "Other Commands:"},
 	)
+
+	schemaCmd := schema.NewCmdSchema(factory, o.IOStreams)
+	schemaCmd.GroupID = groupOntology
+	cmd.AddCommand(schemaCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther

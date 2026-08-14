@@ -1,0 +1,12 @@
+apiVersion: fab/v1
+kind: LinkType
+metadata:
+  name: CustomerSessions
+  description: Points at a type from meta-auth, which this foundry does not activate.
+spec:
+  source:
+    type: Customer
+  target:
+    layer: meta-auth
+    type: Session
+  cardinality: one_to_many

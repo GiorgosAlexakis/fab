@@ -1,0 +1,28 @@
+apiVersion: fab/v1
+kind: LinkType
+metadata:
+  name: CustomerOrders
+  description: The orders placed by a customer.
+spec:
+  source:
+    type: Customer
+  target:
+    type: Order
+  cardinality: one_to_many
+  reverseName: customer
+  onSourceDelete: restrict
+---
+apiVersion: fab/v1
+kind: LinkType
+metadata:
+  name: CustomerAccount
+  description: The platform user a customer signs in as.
+spec:
+  source:
+    type: Customer
+  target:
+    layer: meta-core
+    type: User
+  cardinality: one_to_one
+  reverseName: customer
+  onSourceDelete: detach

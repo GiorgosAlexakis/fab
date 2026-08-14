@@ -1,0 +1,18 @@
+apiVersion: fab/v1
+kind: ObjectType
+metadata:
+  name: Order
+  description: A single purchase made by a customer.
+spec:
+  primaryKey: id
+  properties:
+    - name: id
+      type: string
+    - name: placed_at
+      type: timestamp
+      indexed: true
+    - name: total
+      type: decimal
+    - name: status
+      type: enum
+      values: [pending, paid, shipped, cancelled]
