@@ -16,6 +16,8 @@ SHELL := /usr/bin/env bash
 
 GO ?= go
 BIN_DIR ?= bin
+COMPOSE ?= docker compose
+
 # The CLI, plus the two internal ontology servers.
 BINARIES ?= fab ontology-registry ontology-objectstore
 
@@ -46,6 +48,18 @@ test: ## Run unit tests.
 .PHONY: test-integration
 test-integration: ## Run integration tests against a live PostgreSQL (needs FAB_TEST_POSTGRES_URL).
 	$(GO) test -tags=integration -count=1 ./test/integration/... $(TESTFLAGS)
+
+.PHONY: up
+up: ## Start PostgreSQL and the ontology servers with docker compose.
+	$(COMPOSE) up -d --build
+
+.PHONY: down
+down: ## Stop the ontology servers and delete their data.
+	$(COMPOSE) down -v
+
+.PHONY: logs
+logs: ## Follow the ontology server logs.
+	$(COMPOSE) logs -f ontology-registry ontology-objectstore
 
 .PHONY: verify
 verify: verify-gofmt verify-boilerplate vet ## Run all static checks.
