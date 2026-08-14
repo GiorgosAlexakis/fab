@@ -42,6 +42,7 @@ func NewCmdSchema(f cmdutil.Factory, streams genericiooptions.IOStreams) *cobra.
 		NewCmdList(f, streams),
 		NewCmdTag(f, streams),
 		NewCmdPromote(f, streams),
+		NewCmdRollback(f, streams),
 	)
 
 	return cmd
