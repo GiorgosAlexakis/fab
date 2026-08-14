@@ -25,10 +25,13 @@ import (
 	"io"
 	"strings"
 	"text/tabwriter"
+	"time"
 
+	"k8s.io/apimachinery/pkg/util/duration"
 	"sigs.k8s.io/yaml"
 
 	"github.com/GiorgosAlexakis/fab/pkg/ontology/snapshot"
+	registry "github.com/GiorgosAlexakis/fab/pkg/registry/ontology"
 )
 
 // Supported output formats.
@@ -109,6 +112,42 @@ func SnapshotSummary(w io.Writer, snap *snapshot.Snapshot) error {
 		len(snap.ObjectTypes), len(snap.LinkTypes), len(snap.Layers))
 	fmt.Fprintf(w, "digest: %s\n", digest)
 	return nil
+}
+
+// OntologyList writes a table of ontology versions, newest first.
+func OntologyList(w io.Writer, ontologies []registry.Ontology) error {
+	tw := tabwriter.NewWriter(w, 0, 8, 3, ' ', 0)
+	fmt.Fprintln(tw, "VERSION\tSTATUS\tTAGS\tDIGEST\tGIT REF\tLAYERS\tAGE")
+	for i := range ontologies {
+		item := &ontologies[i]
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%d\t%s\n",
+			item.Version,
+			item.Status,
+			orNone(strings.Join(item.Tags, ",")),
+			ShortDigest(item.Digest),
+			orNone(ShortRef(item.GitRef)),
+			len(item.Layers),
+			duration.HumanDuration(time.Since(item.CreatedAt)),
+		)
+	}
+	return tw.Flush()
+}
+
+// Ontology writes the metadata of one ontology version.
+func Ontology(w io.Writer, item *registry.Ontology) error {
+	tw := tabwriter.NewWriter(w, 0, 8, 3, ' ', 0)
+	fmt.Fprintf(tw, "NAME:\t%s\n", item.Name)
+	fmt.Fprintf(tw, "VERSION:\t%s\n", item.Version)
+	fmt.Fprintf(tw, "STATUS:\t%s\n", item.Status)
+	fmt.Fprintf(tw, "TAGS:\t%s\n", orNone(strings.Join(item.Tags, ",")))
+	fmt.Fprintf(tw, "LAYERS:\t%s\n", strings.Join(item.Layers, ", "))
+	fmt.Fprintf(tw, "GIT REF:\t%s\n", orNone(item.GitRef))
+	fmt.Fprintf(tw, "DIGEST:\t%s\n", item.Digest)
+	fmt.Fprintf(tw, "CREATED:\t%s\n", item.CreatedAt.Format(time.RFC3339))
+	if item.PublishedAt != nil {
+		fmt.Fprintf(tw, "PUBLISHED:\t%s\n", item.PublishedAt.Format(time.RFC3339))
+	}
+	return tw.Flush()
 }
 
 // ShortDigest abbreviates a digest for table output, keeping the algorithm

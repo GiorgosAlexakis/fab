@@ -15,16 +15,18 @@ limitations under the License.
 */
 
 // Package cmdtesting provides a Factory for command tests, so that a test can
-// point a command at a foundry on disk without going through flag parsing or
-// environment variables.
+// point a command at a foundry on disk and at a registry of its choosing
+// without going through flag parsing or environment variables.
 package cmdtesting
 
 import (
+	"context"
 	"errors"
 
 	cmdutil "github.com/GiorgosAlexakis/fab/pkg/cmd/util"
 	"github.com/GiorgosAlexakis/fab/pkg/layers"
 	"github.com/GiorgosAlexakis/fab/pkg/ontology/loader"
+	registry "github.com/GiorgosAlexakis/fab/pkg/registry/ontology"
 )
 
 // TestFactory is a Factory whose dependencies are set directly by a test.
@@ -33,6 +35,9 @@ type TestFactory struct {
 	Root string
 	// Name is the ontology name commands should publish under.
 	Name string
+	// RegistryClient is returned by Registry. A nil value makes Registry fail,
+	// which is what a test that must not touch the registry wants.
+	RegistryClient registry.Interface
 }
 
 var _ cmdutil.Factory = &TestFactory{}
@@ -45,6 +50,12 @@ func NewTestFactory(root string) *TestFactory {
 // WithOntologyName sets the ontology name commands will use.
 func (f *TestFactory) WithOntologyName(name string) *TestFactory {
 	f.Name = name
+	return f
+}
+
+// WithRegistry sets the registry commands will talk to.
+func (f *TestFactory) WithRegistry(client registry.Interface) *TestFactory {
+	f.RegistryClient = client
 	return f
 }
 
@@ -84,4 +95,12 @@ func (f *TestFactory) OntologyName() (string, error) {
 		return "", errors.New("no ontology name configured in the test factory")
 	}
 	return f.Name, nil
+}
+
+// Registry returns the configured registry.
+func (f *TestFactory) Registry(context.Context) (registry.Interface, error) {
+	if f.RegistryClient == nil {
+		return nil, errors.New("no registry configured in the test factory")
+	}
+	return f.RegistryClient, nil
 }

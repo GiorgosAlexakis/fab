@@ -17,7 +17,8 @@ SHELL := /usr/bin/env bash
 GO ?= go
 BIN_DIR ?= bin
 
-BINARIES ?= fab
+# The CLI, plus the internal ontology registry server.
+BINARIES ?= fab ontology-registry
 
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 GIT_TREE_STATE ?= $(shell test -n "$$(git status --porcelain 2>/dev/null)" && echo dirty || echo clean)
@@ -34,7 +35,7 @@ LDFLAGS := -X $(VERSION_PKG).gitVersion=$(VERSION) \
 all: verify build test
 
 .PHONY: build
-build: ## Build the CLI into $(BIN_DIR).
+build: ## Build the CLI and the registry server into $(BIN_DIR).
 	for binary in $(BINARIES); do \
 		$(GO) build -ldflags '$(LDFLAGS)' -o $(BIN_DIR)/$$binary ./cmd/$$binary || exit 1; \
 	done
@@ -42,6 +43,10 @@ build: ## Build the CLI into $(BIN_DIR).
 .PHONY: test
 test: ## Run unit tests.
 	$(GO) test ./... $(TESTFLAGS)
+
+.PHONY: test-integration
+test-integration: ## Run integration tests against a live PostgreSQL (needs FAB_TEST_POSTGRES_URL).
+	$(GO) test -tags=integration -count=1 ./test/integration/... $(TESTFLAGS)
 
 .PHONY: verify
 verify: verify-gofmt verify-boilerplate vet ## Run all static checks.
