@@ -25,18 +25,24 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"github.com/GiorgosAlexakis/fab/pkg/foundry"
 	"github.com/GiorgosAlexakis/fab/pkg/ontology/loader"
 )
 
 const (
 	// FoundryConfigFile marks the root of a foundry.
-	FoundryConfigFile = "foundry.yaml"
+	FoundryConfigFile = foundry.ConfigFileName
 	// FoundryRootEnvVar overrides foundry discovery.
 	FoundryRootEnvVar = "FAB_ROOT"
+	// RegistryURLEnvVar holds the ontology registry connection string.
+	RegistryURLEnvVar = "FAB_REGISTRY_URL"
+	// OntologyNameEnvVar overrides the ontology name from foundry.yaml.
+	OntologyNameEnvVar = "FAB_ONTOLOGY_NAME"
 )
 
-// ConfigFlags composes the foundry location flags. Commands never read these
-// fields directly; they go through a Factory.
+// ConfigFlags composes the flags every command shares: where the foundry is and
+// how to reach the runtime stores. Commands never read these fields directly;
+// they go through a Factory.
 type ConfigFlags struct {
 	// Root is the foundry root. Empty means "discover it".
 	Root *string
@@ -46,15 +52,21 @@ type ConfigFlags struct {
 	LayersDir *string
 	// AppLayer is the layer name for documents in SchemaDir.
 	AppLayer *string
+	// RegistryURL is the PostgreSQL URL of the ontology registry.
+	RegistryURL *string
+	// OntologyName overrides the name from foundry.yaml.
+	OntologyName *string
 }
 
 // NewConfigFlags returns ConfigFlags with the standard foundry layout.
 func NewConfigFlags() *ConfigFlags {
 	return &ConfigFlags{
-		Root:      stringptr(""),
-		SchemaDir: stringptr(loader.DefaultSchemaDir),
-		LayersDir: stringptr(loader.DefaultLayersDir),
-		AppLayer:  stringptr(loader.DefaultAppLayer),
+		Root:         stringptr(""),
+		SchemaDir:    stringptr(loader.DefaultSchemaDir),
+		LayersDir:    stringptr(loader.DefaultLayersDir),
+		AppLayer:     stringptr(loader.DefaultAppLayer),
+		RegistryURL:  stringptr(""),
+		OntologyName: stringptr(""),
 	}
 }
 
@@ -77,6 +89,53 @@ func (f *ConfigFlags) AddFlags(flags *pflag.FlagSet) {
 		flags.StringVar(f.AppLayer, "app-layer", *f.AppLayer,
 			"Layer name assigned to the documents in --schema-dir.")
 	}
+	if f.RegistryURL != nil {
+		flags.StringVar(f.RegistryURL, "registry-url", *f.RegistryURL,
+			fmt.Sprintf("PostgreSQL URL of the ontology registry. Defaults to $%s.", RegistryURLEnvVar))
+	}
+	if f.OntologyName != nil {
+		flags.StringVar(f.OntologyName, "ontology-name", *f.OntologyName,
+			fmt.Sprintf("Ontology name. Defaults to $%s, else metadata.name from %s.",
+				OntologyNameEnvVar, FoundryConfigFile))
+	}
+}
+
+// ToRegistryURL resolves the registry connection string from the flag or the
+// environment.
+func (f *ConfigFlags) ToRegistryURL() (string, error) {
+	if f.RegistryURL != nil && *f.RegistryURL != "" {
+		return *f.RegistryURL, nil
+	}
+	if fromEnv := os.Getenv(RegistryURLEnvVar); fromEnv != "" {
+		return fromEnv, nil
+	}
+	return "", fmt.Errorf("no ontology registry configured: pass --registry-url or set $%s", RegistryURLEnvVar)
+}
+
+// ToOntologyName resolves the ontology name, in precedence order: the
+// --ontology-name flag, $FAB_ONTOLOGY_NAME, and metadata.name in foundry.yaml.
+func (f *ConfigFlags) ToOntologyName() (string, error) {
+	if f.OntologyName != nil && *f.OntologyName != "" {
+		return *f.OntologyName, nil
+	}
+	if fromEnv := os.Getenv(OntologyNameEnvVar); fromEnv != "" {
+		return fromEnv, nil
+	}
+
+	root, err := f.FoundryRoot()
+	if err != nil {
+		return "", err
+	}
+	name, err := foundry.OntologyName(root)
+	if err != nil {
+		return "", err
+	}
+	if name == "" {
+		return "", fmt.Errorf(
+			"no ontology name: pass --ontology-name, set $%s, or set metadata.name in %s",
+			OntologyNameEnvVar, filepath.Join(root, FoundryConfigFile))
+	}
+	return name, nil
 }
 
 // FoundryRoot resolves the foundry root, in precedence order: the --root flag,

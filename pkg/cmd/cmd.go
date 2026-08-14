@@ -28,6 +28,7 @@ import (
 
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericclioptions"
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericiooptions"
+	registrycmd "github.com/GiorgosAlexakis/fab/pkg/cmd/registry"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/schema"
 	cmdutil "github.com/GiorgosAlexakis/fab/pkg/cmd/util"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/version"
@@ -88,6 +89,10 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	schemaCmd := schema.NewCmdSchema(factory, o.IOStreams)
 	schemaCmd.GroupID = groupOntology
 	cmd.AddCommand(schemaCmd)
+
+	registryCmd := registrycmd.NewCmdRegistry(factory, o.IOStreams)
+	registryCmd.GroupID = groupOntology
+	cmd.AddCommand(registryCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther

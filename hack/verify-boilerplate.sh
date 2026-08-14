@@ -20,13 +20,13 @@ set -o pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
 
-expected_first_line="/*"
-expected_second_line="Copyright The FAB Authors."
+expected_copyright="Copyright The FAB Authors."
 
 failed=()
 while IFS= read -r file; do
-  if [[ "$(sed -n 1p "${file}")" != "${expected_first_line}" ]] ||
-    [[ "$(sed -n 2p "${file}")" != "${expected_second_line}" ]]; then
+  # gofmt hoists //go:build constraints above the license block, so look at the
+  # head of the file rather than at a fixed line.
+  if ! head -n 6 "${file}" | grep -qxF "${expected_copyright}"; then
     failed+=("${file}")
   fi
 done < <(find . -name '*.go' -not -path './vendor/*' -not -path './.git/*' | sort)

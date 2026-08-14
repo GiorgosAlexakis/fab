@@ -36,7 +36,16 @@ func NewCmdSchema(f cmdutil.Factory, streams genericiooptions.IOStreams) *cobra.
 		Run: cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
-	cmd.AddCommand(NewCmdValidate(f, streams))
+	cmd.AddCommand(
+		NewCmdValidate(f, streams),
+		NewCmdPublish(f, streams),
+		NewCmdList(f, streams),
+		NewCmdGet(f, streams),
+		NewCmdTag(f, streams),
+		NewCmdPromote(f, streams),
+		NewCmdRollback(f, streams),
+		NewCmdDeprecate(f, streams),
+	)
 
 	return cmd
 }

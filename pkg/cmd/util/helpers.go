@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -89,6 +90,19 @@ func DefaultSubCommandRun(out io.Writer) func(cmd *cobra.Command, args []string)
 		cmd.SetErr(out)
 		CheckErr(cmd.Help())
 	}
+}
+
+// Context returns the command's context, falling back to a background context.
+// cobra only populates the context during Execute, so a command constructed
+// directly in a test would otherwise hand a nil context to the code under test.
+func Context(cmd *cobra.Command) context.Context {
+	if cmd == nil {
+		return context.Background()
+	}
+	if ctx := cmd.Context(); ctx != nil {
+		return ctx
+	}
+	return context.Background()
 }
 
 // RequireNoArguments fails when a command that takes no positional arguments is

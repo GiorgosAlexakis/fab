@@ -22,28 +22,14 @@ import (
 	"testing"
 
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericiooptions"
+	cmdtesting "github.com/GiorgosAlexakis/fab/pkg/cmd/testing"
 	cmdutil "github.com/GiorgosAlexakis/fab/pkg/cmd/util"
-	"github.com/GiorgosAlexakis/fab/pkg/ontology/loader"
 	"github.com/GiorgosAlexakis/fab/pkg/ontology/snapshot"
 )
 
-// fakeFactory points commands at a foundry in testdata.
-type fakeFactory struct {
-	root string
-}
-
-func (f *fakeFactory) FoundryRoot() (string, error) {
-	return f.root, nil
-}
-
-func (f *fakeFactory) LoaderOptions() (loader.Options, error) {
-	options := loader.Options{Root: f.root}
-	options.SetDefaults()
-	return options, nil
-}
-
+// newFakeFactory points commands at a foundry in testdata.
 func newFakeFactory(root string) cmdutil.Factory {
-	return &fakeFactory{root: root}
+	return cmdtesting.NewTestFactory(root)
 }
 
 func TestValidateRunSummary(t *testing.T) {
