@@ -36,8 +36,12 @@ const (
 	FoundryRootEnvVar = "FAB_ROOT"
 	// RegistryURLEnvVar holds the ontology registry connection string.
 	RegistryURLEnvVar = "FAB_REGISTRY_URL"
+	// ObjectStoreURLEnvVar holds the object store connection string.
+	ObjectStoreURLEnvVar = "FAB_OBJECT_STORE_URL"
 	// OntologyNameEnvVar overrides the ontology name from foundry.yaml.
 	OntologyNameEnvVar = "FAB_ONTOLOGY_NAME"
+	// OntologyTagEnvVar names the environment tag data plane commands bind to.
+	OntologyTagEnvVar = "FAB_ONTOLOGY_TAG"
 )
 
 // ConfigFlags composes the flags every command shares: where the foundry is and
@@ -54,19 +58,26 @@ type ConfigFlags struct {
 	AppLayer *string
 	// RegistryURL is the PostgreSQL URL of the ontology registry.
 	RegistryURL *string
+	// ObjectStoreURL is the PostgreSQL URL of the object store. Empty means
+	// "the same database as the registry".
+	ObjectStoreURL *string
 	// OntologyName overrides the name from foundry.yaml.
 	OntologyName *string
+	// OntologyTag is the environment tag data plane commands bind to.
+	OntologyTag *string
 }
 
 // NewConfigFlags returns ConfigFlags with the standard foundry layout.
 func NewConfigFlags() *ConfigFlags {
 	return &ConfigFlags{
-		Root:         stringptr(""),
-		SchemaDir:    stringptr(loader.DefaultSchemaDir),
-		LayersDir:    stringptr(loader.DefaultLayersDir),
-		AppLayer:     stringptr(loader.DefaultAppLayer),
-		RegistryURL:  stringptr(""),
-		OntologyName: stringptr(""),
+		Root:           stringptr(""),
+		SchemaDir:      stringptr(loader.DefaultSchemaDir),
+		LayersDir:      stringptr(loader.DefaultLayersDir),
+		AppLayer:       stringptr(loader.DefaultAppLayer),
+		RegistryURL:    stringptr(""),
+		ObjectStoreURL: stringptr(""),
+		OntologyName:   stringptr(""),
+		OntologyTag:    stringptr(""),
 	}
 }
 
@@ -93,10 +104,20 @@ func (f *ConfigFlags) AddFlags(flags *pflag.FlagSet) {
 		flags.StringVar(f.RegistryURL, "registry-url", *f.RegistryURL,
 			fmt.Sprintf("PostgreSQL URL of the ontology registry. Defaults to $%s.", RegistryURLEnvVar))
 	}
+	if f.ObjectStoreURL != nil {
+		flags.StringVar(f.ObjectStoreURL, "object-store-url", *f.ObjectStoreURL,
+			fmt.Sprintf("PostgreSQL URL of the object store. Defaults to $%s, else the registry URL.",
+				ObjectStoreURLEnvVar))
+	}
 	if f.OntologyName != nil {
 		flags.StringVar(f.OntologyName, "ontology-name", *f.OntologyName,
 			fmt.Sprintf("Ontology name. Defaults to $%s, else metadata.name from %s.",
 				OntologyNameEnvVar, FoundryConfigFile))
+	}
+	if f.OntologyTag != nil {
+		flags.StringVar(f.OntologyTag, "ontology-tag", *f.OntologyTag,
+			fmt.Sprintf("Environment tag whose ontology version object commands bind to. Defaults to $%s.",
+				OntologyTagEnvVar))
 	}
 }
 
@@ -110,6 +131,37 @@ func (f *ConfigFlags) ToRegistryURL() (string, error) {
 		return fromEnv, nil
 	}
 	return "", fmt.Errorf("no ontology registry configured: pass --registry-url or set $%s", RegistryURLEnvVar)
+}
+
+// ToObjectStoreURL resolves the object store connection string, falling back to
+// the registry URL: the two planes are separable, but one database is the common
+// deployment.
+func (f *ConfigFlags) ToObjectStoreURL() (string, error) {
+	if f.ObjectStoreURL != nil && *f.ObjectStoreURL != "" {
+		return *f.ObjectStoreURL, nil
+	}
+	if fromEnv := os.Getenv(ObjectStoreURLEnvVar); fromEnv != "" {
+		return fromEnv, nil
+	}
+	url, err := f.ToRegistryURL()
+	if err != nil {
+		return "", fmt.Errorf("no object store configured: pass --object-store-url, set $%s, "+
+			"or configure the registry, which the object store defaults to", ObjectStoreURLEnvVar)
+	}
+	return url, nil
+}
+
+// ToOntologyTag resolves the environment tag data plane commands bind to. There
+// is no default: which ontology version a write is validated against is not
+// something to guess at.
+func (f *ConfigFlags) ToOntologyTag() (string, error) {
+	if f.OntologyTag != nil && *f.OntologyTag != "" {
+		return *f.OntologyTag, nil
+	}
+	if fromEnv := os.Getenv(OntologyTagEnvVar); fromEnv != "" {
+		return fromEnv, nil
+	}
+	return "", fmt.Errorf("no ontology tag: pass --ontology-tag or set $%s", OntologyTagEnvVar)
 }
 
 // ToOntologyName resolves the ontology name, in precedence order: the

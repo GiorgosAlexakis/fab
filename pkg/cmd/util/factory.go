@@ -40,12 +40,17 @@ type Factory interface {
 	LoaderOptions() (loader.Options, error)
 	// OntologyName returns the name published versions are stored under.
 	OntologyName() (string, error)
+	// OntologyTag returns the environment tag data plane commands bind to.
+	OntologyTag() (string, error)
 	// Registry returns a connected ontology registry. The connection is opened
 	// on first use and shared by every command in the process.
 	Registry(ctx context.Context) (registry.Interface, error)
 	// RegistryDB returns the registry's database handle, for commands that
 	// operate on the schema itself rather than on its contents.
 	RegistryDB(ctx context.Context) (storage.Beginner, error)
+	// ObjectStoreDB returns the object store's database handle. It may be the
+	// same database as the registry, or a different one.
+	ObjectStoreDB(ctx context.Context) (storage.Beginner, error)
 	// Close releases any connections the factory opened.
 	Close()
 }
@@ -59,23 +64,27 @@ type FoundryLocator interface {
 	LoaderOptions() (loader.Options, error)
 	// ToRegistryURL resolves the registry connection string.
 	ToRegistryURL() (string, error)
+	// ToObjectStoreURL resolves the object store connection string.
+	ToObjectStoreURL() (string, error)
 	// ToOntologyName resolves the ontology name.
 	ToOntologyName() (string, error)
+	// ToOntologyTag resolves the environment tag to bind to.
+	ToOntologyTag() (string, error)
 }
 
 type factoryImpl struct {
 	locator FoundryLocator
 
-	// once guards pool so that a command which needs the registry twice does
-	// not open two pools.
-	once sync.Once
-	pool *storage.Pool
-	err  error
+	// Pools are opened lazily and keyed by URL, so that a command needing the
+	// registry twice does not open two pools, and so that the common
+	// single-database deployment shares one pool between the two planes.
+	mutex sync.Mutex
+	pools map[string]*storage.Pool
 }
 
 // NewFactory returns a Factory backed by the given flags.
 func NewFactory(locator FoundryLocator) Factory {
-	return &factoryImpl{locator: locator}
+	return &factoryImpl{locator: locator, pools: map[string]*storage.Pool{}}
 }
 
 func (f *factoryImpl) FoundryRoot() (string, error) {
@@ -90,6 +99,10 @@ func (f *factoryImpl) OntologyName() (string, error) {
 	return f.locator.ToOntologyName()
 }
 
+func (f *factoryImpl) OntologyTag() (string, error) {
+	return f.locator.ToOntologyTag()
+}
+
 func (f *factoryImpl) Registry(ctx context.Context) (registry.Interface, error) {
 	db, err := f.RegistryDB(ctx)
 	if err != nil {
@@ -99,23 +112,42 @@ func (f *factoryImpl) Registry(ctx context.Context) (registry.Interface, error) 
 }
 
 func (f *factoryImpl) RegistryDB(ctx context.Context) (storage.Beginner, error) {
-	f.once.Do(func() {
-		url, err := f.locator.ToRegistryURL()
-		if err != nil {
-			f.err = err
-			return
-		}
-		f.pool, f.err = storage.Open(ctx, url)
-	})
-	if f.err != nil {
-		return nil, f.err
+	url, err := f.locator.ToRegistryURL()
+	if err != nil {
+		return nil, err
 	}
-	return f.pool, nil
+	return f.poolFor(ctx, url)
+}
+
+func (f *factoryImpl) ObjectStoreDB(ctx context.Context) (storage.Beginner, error) {
+	url, err := f.locator.ToObjectStoreURL()
+	if err != nil {
+		return nil, err
+	}
+	return f.poolFor(ctx, url)
+}
+
+func (f *factoryImpl) poolFor(ctx context.Context, url string) (storage.Beginner, error) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	if pool, ok := f.pools[url]; ok {
+		return pool, nil
+	}
+	pool, err := storage.Open(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	f.pools[url] = pool
+	return pool, nil
 }
 
 func (f *factoryImpl) Close() {
-	if f.pool != nil {
-		f.pool.Close()
-		f.pool = nil
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	for url, pool := range f.pools {
+		pool.Close()
+		delete(f.pools, url)
 	}
 }

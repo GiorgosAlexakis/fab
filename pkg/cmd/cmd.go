@@ -28,6 +28,8 @@ import (
 
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericclioptions"
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericiooptions"
+	"github.com/GiorgosAlexakis/fab/pkg/cmd/object"
+	objectstorecmd "github.com/GiorgosAlexakis/fab/pkg/cmd/objectstore"
 	registrycmd "github.com/GiorgosAlexakis/fab/pkg/cmd/registry"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/schema"
 	cmdutil "github.com/GiorgosAlexakis/fab/pkg/cmd/util"
@@ -37,6 +39,7 @@ import (
 // Command group ids used to organise `fab --help`.
 const (
 	groupOntology = "ontology"
+	groupData     = "data"
 	groupOther    = "other"
 )
 
@@ -83,6 +86,7 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 
 	cmd.AddGroup(
 		&cobra.Group{ID: groupOntology, Title: "Ontology Commands:"},
+		&cobra.Group{ID: groupData, Title: "Data Commands:"},
 		&cobra.Group{ID: groupOther, Title: "Other Commands:"},
 	)
 
@@ -93,6 +97,14 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	registryCmd := registrycmd.NewCmdRegistry(factory, o.IOStreams)
 	registryCmd.GroupID = groupOntology
 	cmd.AddCommand(registryCmd)
+
+	objectCmd := object.NewCmdObject(factory, o.IOStreams)
+	objectCmd.GroupID = groupData
+	cmd.AddCommand(objectCmd)
+
+	objectStoreCmd := objectstorecmd.NewCmdObjectStore(factory, o.IOStreams)
+	objectStoreCmd.GroupID = groupData
+	cmd.AddCommand(objectStoreCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther

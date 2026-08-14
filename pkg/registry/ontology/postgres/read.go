@@ -268,6 +268,7 @@ func (s *Store) readDictionary(
 		PropertyNames: map[int32]string{},
 		PropertyTypes: map[int32]string{},
 		PrimaryKeys:   map[int32]int32{},
+		Links:         map[string]int32{},
 	}
 
 	typeRows, err := s.db.Query(ctx, `
@@ -327,6 +328,31 @@ func (s *Store) readDictionary(
 	}
 	if err := propertyRows.Err(); err != nil {
 		return nil, fmt.Errorf("reading the property dictionary: %w", err)
+	}
+	propertyRows.Close()
+
+	linkRows, err := s.db.Query(ctx, `
+		SELECT link_id, layer, name
+		FROM ont_link_types
+		WHERE ontology_id = $1`, ontologyID)
+	if err != nil {
+		return nil, fmt.Errorf("reading the link dictionary: %w", err)
+	}
+	defer linkRows.Close()
+
+	for linkRows.Next() {
+		var (
+			linkID int32
+			layer  string
+			name   string
+		)
+		if err := linkRows.Scan(&linkID, &layer, &name); err != nil {
+			return nil, fmt.Errorf("reading the link dictionary: %w", err)
+		}
+		dictionary.Links[snapshot.QualifiedName(layer, name)] = linkID
+	}
+	if err := linkRows.Err(); err != nil {
+		return nil, fmt.Errorf("reading the link dictionary: %w", err)
 	}
 
 	return dictionary, nil

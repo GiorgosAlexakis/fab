@@ -119,6 +119,9 @@ type Dictionary struct {
 	PropertyTypes map[int32]string
 	// PrimaryKeys maps a catalog type id to the property id of its primary key.
 	PrimaryKeys map[int32]int32
+	// Links maps a qualified link type name ("app/CustomerOrders") to its
+	// catalog id. Link instances in the object store reference these ids.
+	Links map[string]int32
 }
 
 // TypeID returns the catalog id of a qualified type name.
