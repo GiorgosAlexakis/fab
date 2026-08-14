@@ -114,6 +114,22 @@ read as a property filter, parsed against that property's declared type:
 curl 'http://localhost:8082/v1/objects/app/Customer?tier=pro&limit=10&total'
 ```
 
+An object's layer and type are path segments everywhere except in a link body,
+where both ends are named by their layer-qualified type, the same form the store
+reports in an object's `type`:
+
+```bash
+curl -X PUT http://localhost:8082/v1/links/app/CustomerOrders \
+     -H 'Content-Type: application/json' \
+     -d '{"source":{"type":"app/Customer","primaryKey":"CUST-1"},
+          "target":{"type":"app/Order","primaryKey":"ORD-1"}}'
+```
+
+A link is traversed by name in either direction: `forwardName` from the source,
+`reverseName` from the target. Both default from the link type name, so
+`CustomerOrders` reads as `customer_orders` from a customer and `customer` from
+an order.
+
 A tag is mutable, so the resolved ontology is cached for
 `--ontology-refresh-interval` rather than for the lifetime of the process:
 promoting a version reaches a running store without a restart. The plan's end
@@ -132,7 +148,11 @@ fab schema tag dev 0.1.0
 
 curl -X POST http://localhost:8082/v1/objects/app/Customer \
      -H 'Content-Type: application/json' \
-     -d '{"set":{"id":"CUST-1","email":"a@corp.com","tier":"pro"}}'
+     -d '{"set":{"customer_id":"CUST-1","email":"a@corp.com","tier":"pro"}}'
 
 curl 'http://localhost:8082/v1/objects/app/Customer/CUST-1'
+curl 'http://localhost:8082/v1/objects/app/Customer/CUST-1/links/customer_orders'
 ```
+
+The primary key goes in `set` like any other property: it is one of the object's
+declared properties, and the store reads the object's identity from it.
