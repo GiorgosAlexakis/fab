@@ -1,0 +1,12 @@
+# Build output
+/bin/
+/dist/
+
+# Layer cache populated by `fab sync`
+/.fab/cache/
+
+# sstate cache
+/.fab/sstate/
+
+# Local environment overrides
+.env
