@@ -22,7 +22,9 @@ import (
 	"context"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/GiorgosAlexakis/fab/pkg/objectstore/server"
 	registry "github.com/GiorgosAlexakis/fab/pkg/registry/ontology"
 	registryclient "github.com/GiorgosAlexakis/fab/pkg/registry/ontology/client"
 	registrypostgres "github.com/GiorgosAlexakis/fab/pkg/registry/ontology/postgres"
@@ -49,4 +51,22 @@ func NewRegistryServer(t *testing.T, db storage.Beginner) (registry.Interface, s
 		t.Fatalf("building a registry client for %s: %v", httpServer.URL, err)
 	}
 	return client.WithHTTPClient(httpServer.Client()), httpServer.URL
+}
+
+// NewObjectStoreServer serves the object store over HTTP against the ontology
+// version the given tag points at, and returns its base URL.
+func NewObjectStoreServer(t *testing.T, db storage.Beginner, reg registry.Interface,
+	ontologyName, tag string) string {
+	t.Helper()
+
+	// A short TTL keeps the test honest about rebinding without making it slow:
+	// promoting a tag has to become visible without restarting the server.
+	resolver, err := server.NewPostgresResolver(db, reg, ontologyName, tag, 50*time.Millisecond)
+	if err != nil {
+		t.Fatalf("building the object store resolver: %v", err)
+	}
+
+	httpServer := httptest.NewServer(server.New(resolver, nil))
+	t.Cleanup(httpServer.Close)
+	return httpServer.URL
 }

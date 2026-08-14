@@ -17,8 +17,8 @@ SHELL := /usr/bin/env bash
 GO ?= go
 BIN_DIR ?= bin
 
-# The CLI, plus the internal ontology registry server.
-BINARIES ?= fab ontology-registry
+# The CLI, plus the two internal ontology servers.
+BINARIES ?= fab ontology-registry ontology-objectstore
 
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 GIT_TREE_STATE ?= $(shell test -n "$$(git status --porcelain 2>/dev/null)" && echo dirty || echo clean)
@@ -35,7 +35,7 @@ LDFLAGS := -X $(VERSION_PKG).gitVersion=$(VERSION) \
 all: verify build test
 
 .PHONY: build
-build: ## Build the CLI and the registry server into $(BIN_DIR).
+build: ## Build the CLI and the ontology servers into $(BIN_DIR).
 	for binary in $(BINARIES); do \
 		$(GO) build -ldflags '$(LDFLAGS)' -o $(BIN_DIR)/$$binary ./cmd/$$binary || exit 1; \
 	done
