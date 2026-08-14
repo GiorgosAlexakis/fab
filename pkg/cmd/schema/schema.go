@@ -40,6 +40,7 @@ func NewCmdSchema(f cmdutil.Factory, streams genericiooptions.IOStreams) *cobra.
 		NewCmdValidate(f, streams),
 		NewCmdPublish(f, streams),
 		NewCmdList(f, streams),
+		NewCmdTag(f, streams),
 	)
 
 	return cmd
