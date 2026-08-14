@@ -1,0 +1,12 @@
+apiVersion: fab/v1
+kind: Layer
+metadata:
+  name: meta-core
+  version: 1.0.1
+  origin: upstream
+  description: Base entities every other layer builds on.
+spec:
+  provides:
+    schema:
+      objects: [Organization, User]
+      links: [OrganizationUsers]

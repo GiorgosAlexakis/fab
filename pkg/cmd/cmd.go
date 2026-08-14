@@ -30,6 +30,7 @@ import (
 	"github.com/GiorgosAlexakis/fab/pkg/cli/genericiooptions"
 	layerscmd "github.com/GiorgosAlexakis/fab/pkg/cmd/layers"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/resolve"
+	"github.com/GiorgosAlexakis/fab/pkg/cmd/schema"
 	cmdutil "github.com/GiorgosAlexakis/fab/pkg/cmd/util"
 	"github.com/GiorgosAlexakis/fab/pkg/cmd/version"
 )
@@ -37,6 +38,7 @@ import (
 // Command group ids used to organise `fab --help`.
 const (
 	groupComposition = "composition"
+	groupOntology    = "ontology"
 	groupOther       = "other"
 )
 
@@ -83,6 +85,7 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 
 	cmd.AddGroup(
 		&cobra.Group{ID: groupComposition, Title: "Composition Commands:"},
+		&cobra.Group{ID: groupOntology, Title: "Ontology Commands:"},
 		&cobra.Group{ID: groupOther, Title: "Other Commands:"},
 	)
 
@@ -93,6 +96,10 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	layersCmd := layerscmd.NewCmdLayers(factory, o.IOStreams)
 	layersCmd.GroupID = groupComposition
 	cmd.AddCommand(layersCmd)
+
+	schemaCmd := schema.NewCmdSchema(factory, o.IOStreams)
+	schemaCmd.GroupID = groupOntology
+	cmd.AddCommand(schemaCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther

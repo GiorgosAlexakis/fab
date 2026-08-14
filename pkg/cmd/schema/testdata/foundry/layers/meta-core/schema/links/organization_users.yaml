@@ -1,0 +1,12 @@
+apiVersion: fab/v1
+kind: LinkType
+metadata:
+  name: OrganizationUsers
+  description: The users belonging to an organization.
+spec:
+  source:
+    type: Organization
+  target:
+    type: User
+  cardinality: one_to_many
+  onSourceDelete: restrict

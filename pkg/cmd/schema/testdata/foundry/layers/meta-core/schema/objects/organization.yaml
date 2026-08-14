@@ -1,0 +1,16 @@
+apiVersion: fab/v1
+kind: ObjectType
+metadata:
+  name: Organization
+  description: A tenant of the platform.
+spec:
+  primaryKey: id
+  properties:
+    - name: id
+      type: string
+    - name: name
+      type: string
+      indexed: true
+    - name: tags
+      type: array
+      items: string

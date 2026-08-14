@@ -1,0 +1,8 @@
+apiVersion: fab/v1
+kind: Foundry
+metadata:
+  name: acme-corp
+spec:
+  layers:
+    - name: meta-core
+      version: ">=1.0.0, <2.0.0"
