@@ -12,6 +12,7 @@ import (
 
 	"github.com/GiorgosAlexakis/fab/cmd/initialize"
 	"github.com/GiorgosAlexakis/fab/cmd/resolve"
+	"github.com/GiorgosAlexakis/fab/cmd/sync"
 	cmdutil "github.com/GiorgosAlexakis/fab/cmd/util"
 	"github.com/GiorgosAlexakis/fab/cmd/version"
 	"github.com/GiorgosAlexakis/fab/internal/util/genericclioptions"
@@ -77,6 +78,10 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	resolveCmd := resolve.NewCmdResolve(factory, o.IOStreams)
 	resolveCmd.GroupID = groupComposition
 	cmd.AddCommand(resolveCmd)
+
+	syncCmd := sync.NewCmdSync(factory, o.IOStreams)
+	syncCmd.GroupID = groupComposition
+	cmd.AddCommand(syncCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther
