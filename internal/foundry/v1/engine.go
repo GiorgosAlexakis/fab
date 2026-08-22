@@ -1,7 +1,9 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -33,6 +35,9 @@ const (
 // scaffolded manifest with the copy the bundle pin describes.
 const DefaultFoundationVersion = "0.1.0"
 
+// ErrFoundryNotFound is what Load reports when there is no foundry to read.
+var ErrFoundryNotFound = errors.New("no " + FoundryFileName)
+
 // Engine creates and stores a foundry.
 //
 // It is an interface so that a foundry kept somewhere other than a directory
@@ -44,6 +49,10 @@ type Engine interface {
 	Init(opts InitOptions) error
 	// Save writes the foundry document, replacing the one that is there.
 	Save(f *Foundry) error
+	// Load reads the foundry document. It reports a foundry that is not there
+	// as an error wrapping ErrFoundryNotFound, so callers can say what to do
+	// about it rather than repeating the check.
+	Load() (*Foundry, error)
 }
 
 // InitOptions is what a new foundry is created from.
@@ -103,6 +112,11 @@ func (e *engine) Init(opts InitOptions) error {
 	if err := created.AddLayer(FoundationLayer, declared); err != nil {
 		return err
 	}
+	// Checked before anything is written, so that a name the FDE has to go back
+	// and fix does not leave half a foundry on disk behind it.
+	if err := created.Validate(); err != nil {
+		return err
+	}
 
 	foundationDir := filepath.Join(e.root, LayersDir, FoundationLayer)
 	if err := os.MkdirAll(foundationDir, 0o755); err != nil {
@@ -130,6 +144,9 @@ func (e *engine) Init(opts InitOptions) error {
 // the file as the keys this binary knows.
 func (e *engine) Save(f *Foundry) error {
 	SetDefaults_Foundry(f)
+	if err := f.Validate(); err != nil {
+		return fmt.Errorf("refusing to write an invalid %s: %w", FoundryFileName, err)
+	}
 
 	data, err := yaml.Marshal(f)
 	if err != nil {
@@ -160,4 +177,28 @@ func (e *engine) Save(f *Foundry) error {
 		return fmt.Errorf("writing %s: %w", path, err)
 	}
 	return nil
+}
+
+// Load reads the foundry document.
+//
+// Decoding is lenient: this file grows keys that older fab binaries do not know
+// about, and refusing to read it would make every new key a forced CLI upgrade.
+// Saving is not lenient in the same way, which is what Save documents.
+func (e *engine) Load() (*Foundry, error) {
+	path := filepath.Join(e.root, FoundryFileName)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("%s: %w", path, ErrFoundryNotFound)
+		}
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	f := &Foundry{}
+	if err := yaml.Unmarshal(data, f); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", path, err)
+	}
+	SetDefaults_Foundry(f)
+	return f, nil
 }

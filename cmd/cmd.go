@@ -11,8 +11,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/GiorgosAlexakis/fab/cmd/initialize"
+	"github.com/GiorgosAlexakis/fab/cmd/resolve"
 	cmdutil "github.com/GiorgosAlexakis/fab/cmd/util"
 	"github.com/GiorgosAlexakis/fab/cmd/version"
+	"github.com/GiorgosAlexakis/fab/internal/util/genericclioptions"
 	"github.com/GiorgosAlexakis/fab/internal/util/genericiooptions"
 )
 
@@ -28,14 +30,17 @@ type FabOptions struct {
 
 	// Arguments are the process arguments, including the program name.
 	Arguments []string
+	// ConfigFlags are the persistent flags shared by all commands.
+	ConfigFlags *genericclioptions.ConfigFlags
 }
 
 // NewDefaultFabCommand returns the fab command tree wired to the process
 // streams and arguments.
 func NewDefaultFabCommand() *cobra.Command {
 	return NewFabCommand(FabOptions{
-		IOStreams: genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr},
-		Arguments: os.Args,
+		IOStreams:   genericiooptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr},
+		Arguments:   os.Args,
+		ConfigFlags: genericclioptions.NewConfigFlags(),
 	})
 }
 
@@ -53,6 +58,13 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 		Run:           cmdutil.DefaultSubCommandRun(o.ErrOut),
 	}
 
+	if o.ConfigFlags == nil {
+		o.ConfigFlags = genericclioptions.NewConfigFlags()
+	}
+	o.ConfigFlags.AddFlags(cmd.PersistentFlags())
+
+	factory := cmdutil.NewFactory(o.ConfigFlags)
+
 	cmd.AddGroup(
 		&cobra.Group{ID: groupComposition, Title: "Composition Commands:"},
 		&cobra.Group{ID: groupOther, Title: "Other Commands:"},
@@ -61,6 +73,10 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	initCmd := initialize.NewCmdInit(o.IOStreams)
 	initCmd.GroupID = groupComposition
 	cmd.AddCommand(initCmd)
+
+	resolveCmd := resolve.NewCmdResolve(factory, o.IOStreams)
+	resolveCmd.GroupID = groupComposition
+	cmd.AddCommand(resolveCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther
