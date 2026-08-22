@@ -12,6 +12,7 @@ import (
 
 	"github.com/GiorgosAlexakis/fab/cmd/initialize"
 	"github.com/GiorgosAlexakis/fab/cmd/layer"
+	"github.com/GiorgosAlexakis/fab/cmd/layers"
 	"github.com/GiorgosAlexakis/fab/cmd/resolve"
 	"github.com/GiorgosAlexakis/fab/cmd/sync"
 	cmdutil "github.com/GiorgosAlexakis/fab/cmd/util"
@@ -87,6 +88,10 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	layerCmd := layer.NewCmdLayer(factory, o.IOStreams)
 	layerCmd.GroupID = groupComposition
 	cmd.AddCommand(layerCmd)
+
+	layersCmd := layers.NewCmdLayers(factory, o.IOStreams)
+	layersCmd.GroupID = groupComposition
+	cmd.AddCommand(layersCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther
