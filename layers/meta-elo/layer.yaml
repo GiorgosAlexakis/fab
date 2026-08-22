@@ -1,0 +1,12 @@
+apiVersion: fab/v1
+kind: Layer
+metadata:
+  name: meta-elo
+  version: 0.1.0
+  origin: upstream
+  description: >-
+    The foundation layer. It carries the ontology runtime every other layer binds
+    against, and is the one layer a foundry must activate. Nothing is implemented
+    here yet: the manifest exists so that layers can declare the dependency and
+    the resolver can order it first.
+spec: {}
