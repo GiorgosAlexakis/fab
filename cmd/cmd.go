@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/GiorgosAlexakis/fab/cmd/initialize"
+	"github.com/GiorgosAlexakis/fab/cmd/layer"
 	"github.com/GiorgosAlexakis/fab/cmd/resolve"
 	"github.com/GiorgosAlexakis/fab/cmd/sync"
 	cmdutil "github.com/GiorgosAlexakis/fab/cmd/util"
@@ -82,6 +83,10 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	syncCmd := sync.NewCmdSync(factory, o.IOStreams)
 	syncCmd.GroupID = groupComposition
 	cmd.AddCommand(syncCmd)
+
+	layerCmd := layer.NewCmdLayer(factory, o.IOStreams)
+	layerCmd.GroupID = groupComposition
+	cmd.AddCommand(layerCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther
