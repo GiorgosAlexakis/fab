@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/GiorgosAlexakis/fab/cmd/initialize"
 	cmdutil "github.com/GiorgosAlexakis/fab/cmd/util"
 	"github.com/GiorgosAlexakis/fab/cmd/version"
 	"github.com/GiorgosAlexakis/fab/internal/util/genericiooptions"
@@ -17,7 +18,8 @@ import (
 
 // Command group ids used to organise `fab --help`.
 const (
-	groupOther = "other"
+	groupComposition = "composition"
+	groupOther       = "other"
 )
 
 // FabOptions is the configuration of the root command.
@@ -52,8 +54,13 @@ func NewFabCommand(o FabOptions) *cobra.Command {
 	}
 
 	cmd.AddGroup(
+		&cobra.Group{ID: groupComposition, Title: "Composition Commands:"},
 		&cobra.Group{ID: groupOther, Title: "Other Commands:"},
 	)
+
+	initCmd := initialize.NewCmdInit(o.IOStreams)
+	initCmd.GroupID = groupComposition
+	cmd.AddCommand(initCmd)
 
 	versionCmd := version.NewCmdVersion(o.IOStreams)
 	versionCmd.GroupID = groupOther
